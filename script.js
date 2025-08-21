@@ -153,7 +153,7 @@ function applyPreset(key) {
   $("height").value = p.height ?? '';
   $("weight").value = p.weight ?? '';
   $("sigNote").classList.toggle("hidden", !p.signature);
-  $("qtyUnit").textContent = `(${UNIT_BY_PRODUCT[key] || 'units'})`;
+  $("qtyUnit").textContent = "";
   updateAddonNote();
 }
 
@@ -229,7 +229,7 @@ function updateAddonNote() {
     el.textContent = "Selected product is a large item (e.g., screen). Add-ons (small/medium) use the large package’s rate; overflow creates extra packages at +$4 each.";
     el.classList.remove("hidden");
   } else {
-    el.textContent = "Small/medium-only shipments treat add-ons as separate package(s): +$4 per package (rule of thumb).";
+    el.textContent = "Small/medium-only shipments treat add-ons as separate package(s): +$4 per package.";
     el.classList.remove("hidden");
   }
 }
