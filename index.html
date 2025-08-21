@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>UPS Shipping Quote</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="style.css?v=7">
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-800">
+  <main class="max-w-3xl mx-auto p-6">
+    <header class="mb-6">
+      <h1 class="text-2xl font-semibold">UPS Shipping Quote</h1>
+      <p class="text-sm text-slate-600">Calculate live UPS negotiated rates based on product presets.</p>
+    </header>
+
+    <section class="bg-white rounded-2xl shadow p-5">
+      <form id="quoteForm" class="space-y-6">
+        <!-- Product + Quantity -->
+        <div class="grid md:grid-cols-3 gap-4 items-end">
+          <div class="md:col-span-2">
+            <label for="product" class="block text-sm font-medium">Product preset</label>
+            <select id="product" class="mt-1 w-full rounded-xl border p-2"></select>
+            <p id="productDesc" class="mt-1 text-xs text-slate-500"></p>
+          </div>
+          <div>
+            <label for="qty" class="block text-sm font-medium">
+              Quantity <span id="qtyUnit" class="text-slate-500 font-normal">(units)</span>
+            </label>
+            <input id="qty" type="number" min="1" step="1" value="1" class="mt-1 w-full rounded-xl border p-2" />
+          </div>
+        </div>
+
+        <!-- Add-on -->
+        <div class="rounded-xl border p-3 addon-panel">
+          <div class="grid md:grid-cols-3 gap-4 items-end">
+            <div class="md:col-span-2">
+              <label for="addonProduct" class="block text-sm font-medium">Add-on item (optional)</label>
+              <select id="addonProduct" class="mt-1 w-full rounded-xl border p-2">
+                <option value="">— None —</option>
+              </select>
+              <p id="addonDesc" class="mt-1 text-xs text-slate-500 hidden"></p>
+              <p class="text-xs text-slate-500 mt-1">Added to the same shipment. We apply the rule of thumb automatically.</p>
+              <p id="addonNote" class="text-xs text-slate-500 mt-1 hidden">
+                Small/medium-only shipments treat add-ons as separate package(s): +$4 per package (rule of thumb).
+              </p>
+            </div>
+            <div>
+              <label for="addonQty" class="block text-sm font-medium">Add-on quantity</label>
+              <input id="addonQty" type="number" min="1" step="1" value="1" class="mt-1 w-full rounded-xl border p-2" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Destination -->
+        <div class="grid md:grid-cols-3 gap-4">
+          <!-- Country combobox -->
+          <div>
+            <label class="block text-sm font-medium">Country</label>
+            <div class="mt-1 relative">
+              <!-- Visible, searchable input -->
+              <input
+                id="countryCombo"
+                type="text"
+                class="w-full rounded-xl border p-2 pr-8"
+                placeholder="Start typing a country…"
+                autocomplete="off"
+              />
+              <!-- Hidden 2-letter country code the app actually uses -->
+              <input id="country" type="hidden" value="CA" />
+
+              <!-- Clear button appears when a selection is made -->
+              <button
+                type="button"
+                id="countryClear"
+                class="absolute right-2 top-1.5 bottom-1.5 my-auto px-2 text-slate-500 hidden"
+                aria-label="Clear country"
+                title="Clear"
+              >✕</button>
+
+              <!-- Dropdown menu (rendered by JS) -->
+              <div
+                id="countryMenu"
+                class="absolute z-50 mt-1 w-full bg-white border rounded-xl shadow max-h-64 overflow-auto hidden"
+                role="listbox"
+                aria-label="Country options"
+              ></div>
+            </div>
+          </div>
+
+          <div>
+            <label for="postal" class="block text-sm font-medium">
+              Postal / ZIP code
+              <button type="button" id="tipPostal" class="ml-1 text-slate-500" aria-label="Postal tips">ⓘ</button>
+            </label>
+            <input id="postal" type="text" class="mt-1 w-full rounded-xl border p-2" placeholder="e.g., M4A 2N7 or 90210" />
+          </div>
+
+          <div>
+            <label for="state" class="block text-sm font-medium">State / Province</label>
+            <!-- Embedded Auto-fill so it never overflows -->
+            <div class="mt-1 relative">
+              <input id="state" type="text"
+                     class="w-full rounded-xl border p-2 pr-24"
+                     placeholder="e.g., ON or CA" />
+              <button id="autofillState" type="button"
+                      class="absolute right-1 top-1 bottom-1 my-auto h-[38px] px-3 text-sm rounded-xl border bg-white whitespace-nowrap">
+                Auto-fill
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Package -->
+        <div class="grid md:grid-cols-4 gap-4">
+          <div>
+            <label for="length" class="block text-sm font-medium">Length (in)</label>
+            <input id="length" type="number" step="0.01" class="mt-1 w-full rounded-xl border p-2" />
+          </div>
+          <div>
+            <label for="width" class="block text-sm font-medium">Width (in)</label>
+            <input id="width" type="number" step="0.01" class="mt-1 w-full rounded-xl border p-2" />
+          </div>
+          <div>
+            <label for="height" class="block text-sm font-medium">Height (in)</label>
+            <input id="height" type="number" step="0.01" class="mt-1 w-full rounded-xl border p-2" />
+          </div>
+          <div>
+            <label for="weight" class="block text-sm font-medium">Weight (lb)</label>
+            <input id="weight" type="number" step="0.01" class="mt-1 w-full rounded-xl border p-2" />
+          </div>
+        </div>
+
+        <!-- Service -->
+        <div>
+          <label for="service" class="block text-sm font-medium">
+            UPS service
+            <button type="button" id="tipService" class="ml-1 text-slate-500" aria-label="Service reference">ⓘ</button>
+          </label>
+          <select id="service" class="mt-1 w-full rounded-xl border p-2"></select>
+          <p class="text-xs text-slate-500 mt-1">
+            <a id="openRefLink" class="text-blue-600 underline cursor-pointer">See service codes & quantity rules</a>
+          </p>
+        </div>
+
+        <!-- Signature note -->
+        <div class="text-sm text-slate-600">
+          <p id="sigNote" class="hidden">Signature required: enforced for screen shipments.</p>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex items-center gap-3">
+          <button id="getQuote" type="submit" class="rounded-xl bg-blue-600 text-white px-4 py-2">
+            <span id="btnText">Get quote</span>
+            <span id="btnSpinner" class="hidden ml-2 animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full"></span>
+          </button>
+          <span id="status" class="text-sm text-slate-500"></span>
+        </div>
+      </form>
+
+      <hr class="my-6" />
+
+      <!-- Result -->
+      <div id="resultCard" class="hidden rounded-2xl border p-4">
+        <p class="text-sm text-slate-500">Estimated rate</p>
+        <p id="result" class="text-2xl font-semibold mt-1">—</p>
+        <p class="text-xs text-slate-500 mt-2">Rates are estimated. Taxes/surcharges may vary.</p>
+        <p id="metaLine" class="text-xs text-slate-500 mt-1"></p>
+      </div>
+    </section>
+  </main>
+
+  <!-- Reference modal -->
+  <div id="refModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+    <!-- Backdrop -->
+    <div class="absolute inset-0 bg-black/40"></div>
+
+    <!-- Scrollable panel -->
+    <div class="relative bg-white rounded-2xl shadow-xl max-w-3xl w-full md:w-[90%] p-5 max-h-[85vh] overflow-y-auto modal-panel">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-lg font-semibold">Shipping Reference</h2>
+        <button id="refClose" class="text-slate-500 text-xl leading-none">✕</button>
+      </div>
+      <div id="refContent" class="space-y-6 text-sm"></div>
+    </div>
+  </div>
+
+  <script src="script.js" defer></script>
+</body>
+</html>
