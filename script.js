@@ -1,8 +1,11 @@
 // ui/script.js
 
 // API base: if opened as file:// use localhost; if hosted with API, use relative /api
-const ALT_API = 'http://localhost:3000/api';
-const API = (location.origin.startsWith('http') && location.hostname !== 'localhost') ? '/api' : ALT_API;
+// production points to Render, local stays on localhost
+const ALT_API  = 'http://localhost:3000/api';
+const PROD_API = 'https://shipping-quote-api.onrender.com/api';
+const API = (location.hostname === 'localhost') ? ALT_API : PROD_API;
+
 
 const $ = (id) => document.getElementById(id);
 
