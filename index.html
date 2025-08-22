@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>UPS Shipping Quote</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="style.css?v=8">
+  <link rel="stylesheet" href="style.css?v=7">
 </head>
 <body class="min-h-screen bg-slate-50 text-slate-800">
   <main class="max-w-3xl mx-auto p-6">
@@ -19,12 +19,14 @@
         <!-- Product + Quantity -->
         <div class="grid md:grid-cols-3 gap-4 items-end">
           <div class="md:col-span-2">
-            <label for="product" class="block text-sm font-medium">Item code</label>
+            <label for="product" class="block text-sm font-medium">Product preset</label>
             <select id="product" class="mt-1 w-full rounded-xl border p-2"></select>
             <p id="productDesc" class="mt-1 text-xs text-slate-500"></p>
           </div>
           <div>
-            <label for="qty" class="block text-sm font-medium">Quantity</label>
+            <label for="qty" class="block text-sm font-medium">
+              Quantity <span id="qtyUnit" class="text-slate-500 font-normal">(units)</span>
+            </label>
             <input id="qty" type="number" min="1" step="1" value="1" class="mt-1 w-full rounded-xl border p-2" />
           </div>
         </div>
@@ -40,7 +42,7 @@
               <p id="addonDesc" class="mt-1 text-xs text-slate-500 hidden"></p>
               <p class="text-xs text-slate-500 mt-1">Added to the same shipment. We apply the rule of thumb automatically.</p>
               <p id="addonNote" class="text-xs text-slate-500 mt-1 hidden">
-                Small/medium-only shipments treat add-ons as separate package(s): +$4 per package.
+                Small/medium-only shipments treat add-ons as separate package(s): +$4 per package (rule of thumb).
               </p>
             </div>
             <div>
@@ -183,6 +185,6 @@
     </div>
   </div>
 
-  <script src="script.js?v=5" defer></script>
+  <script src="script.js" defer></script>
 </body>
 </html>
