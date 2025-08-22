@@ -4,9 +4,8 @@
 // production points to Render, local stays on localhost
 const ALT_API  = 'http://localhost:3000/api';
 const PROD_API = 'https://shipping-quote-api.onrender.com/api';
-const API = PROD_API; // <-- force it
-console.log('API base =', API);
-//const API = (location.hostname === 'localhost') ? ALT_API : PROD_API;
+//console.log('API base =', API);
+const API = (location.hostname === 'localhost') ? ALT_API : PROD_API;
 
 
 const $ = (id) => document.getElementById(id);
