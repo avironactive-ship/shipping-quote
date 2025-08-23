@@ -95,7 +95,7 @@ body::before{
   transform: translateX(-50%);    /* perfectly center horizontally */
   width: min(92vw, 1200px);       /* span left & right; cap max size */
   height: min(70vh, 800px);
-  background: url("img/logo-aviron.png") no-repeat center / contain;
+  background: url("Aviron Logo 2.jpg") no-repeat center / contain;
   opacity: 0.06;                  /* subtle; adjust 0.03–0.10 to taste */
   filter: grayscale(1) contrast(1.05);
   pointer-events: none;           /* don’t block clicks */
