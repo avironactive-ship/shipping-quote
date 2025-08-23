@@ -3,29 +3,29 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>UPS Shipping Quote</title>
+  <title>UPS Shipping Quote Generator</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="style.css?v=7">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body class="min-h-screen bg-slate-50 text-slate-800">
   <main class="max-w-3xl mx-auto p-6">
     <header class="mb-6">
-      <h1 class="text-2xl font-semibold">UPS Shipping Quote</h1>
+      <h1 class="text-2xl font-semibold">UPS Shipping Quote Generator</h1>
       <p class="text-sm text-slate-600">Calculate live UPS negotiated rates based on product presets.</p>
     </header>
 
     <section class="bg-white rounded-2xl shadow p-5">
       <form id="quoteForm" class="space-y-6">
-        <!-- Product + Quantity -->
+        <!-- Item code + Quantity -->
         <div class="grid md:grid-cols-3 gap-4 items-end">
           <div class="md:col-span-2">
-            <label for="product" class="block text-sm font-medium">Product preset</label>
+            <label for="product" class="block text-sm font-medium">Item code</label>
             <select id="product" class="mt-1 w-full rounded-xl border p-2"></select>
             <p id="productDesc" class="mt-1 text-xs text-slate-500"></p>
           </div>
           <div>
             <label for="qty" class="block text-sm font-medium">
-              Quantity <span id="qtyUnit" class="text-slate-500 font-normal">(units)</span>
+              Quantity <span id="qtyUnit" class="text-slate-500 font-normal"></span>
             </label>
             <input id="qty" type="number" min="1" step="1" value="1" class="mt-1 w-full rounded-xl border p-2" />
           </div>
@@ -42,7 +42,7 @@
               <p id="addonDesc" class="mt-1 text-xs text-slate-500 hidden"></p>
               <p class="text-xs text-slate-500 mt-1">Added to the same shipment. We apply the rule of thumb automatically.</p>
               <p id="addonNote" class="text-xs text-slate-500 mt-1 hidden">
-                Small/medium-only shipments treat add-ons as separate package(s): +$4 per package (rule of thumb).
+                Small/medium-only shipments treat add-ons as separate package(s): +$4 per package.
               </p>
             </div>
             <div>
@@ -58,33 +58,15 @@
           <div>
             <label class="block text-sm font-medium">Country</label>
             <div class="mt-1 relative">
-              <!-- Visible, searchable input -->
-              <input
-                id="countryCombo"
-                type="text"
-                class="w-full rounded-xl border p-2 pr-8"
-                placeholder="Start typing a country…"
-                autocomplete="off"
-              />
-              <!-- Hidden 2-letter country code the app actually uses -->
+              <input id="countryCombo" type="text" class="w-full rounded-xl border p-2 pr-8"
+                     placeholder="Start typing a country…" autocomplete="off" />
               <input id="country" type="hidden" value="CA" />
-
-              <!-- Clear button appears when a selection is made -->
-              <button
-                type="button"
-                id="countryClear"
-                class="absolute right-2 top-1.5 bottom-1.5 my-auto px-2 text-slate-500 hidden"
-                aria-label="Clear country"
-                title="Clear"
-              >✕</button>
-
-              <!-- Dropdown menu (rendered by JS) -->
-              <div
-                id="countryMenu"
-                class="absolute z-50 mt-1 w-full bg-white border rounded-xl shadow max-h-64 overflow-auto hidden"
-                role="listbox"
-                aria-label="Country options"
-              ></div>
+              <button type="button" id="countryClear"
+                      class="absolute right-2 top-1.5 bottom-1.5 my-auto px-2 text-slate-500 hidden"
+                      aria-label="Clear country" title="Clear">✕</button>
+              <div id="countryMenu"
+                   class="absolute z-50 mt-1 w-full bg-white border rounded-xl shadow max-h-64 overflow-auto hidden"
+                   role="listbox" aria-label="Country options"></div>
             </div>
           </div>
 
@@ -93,15 +75,14 @@
               Postal / ZIP code
               <button type="button" id="tipPostal" class="ml-1 text-slate-500" aria-label="Postal tips">ⓘ</button>
             </label>
-            <input id="postal" type="text" class="mt-1 w-full rounded-xl border p-2" placeholder="e.g., M4A 2N7 or 90210" />
+            <input id="postal" type="text" class="mt-1 w-full rounded-xl border p-2"
+                   placeholder="e.g., M4A 2N7 or 90210" />
           </div>
 
           <div>
             <label for="state" class="block text-sm font-medium">State / Province</label>
-            <!-- Embedded Auto-fill so it never overflows -->
             <div class="mt-1 relative">
-              <input id="state" type="text"
-                     class="w-full rounded-xl border p-2 pr-24"
+              <input id="state" type="text" class="w-full rounded-xl border p-2 pr-24"
                      placeholder="e.g., ON or CA" />
               <button id="autofillState" type="button"
                       class="absolute right-1 top-1 bottom-1 my-auto h-[38px] px-3 text-sm rounded-xl border bg-white whitespace-nowrap">
@@ -172,10 +153,7 @@
 
   <!-- Reference modal -->
   <div id="refModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4">
-    <!-- Backdrop -->
     <div class="absolute inset-0 bg-black/40"></div>
-
-    <!-- Scrollable panel -->
     <div class="relative bg-white rounded-2xl shadow-xl max-w-3xl w-full md:w-[90%] p-5 max-h-[85vh] overflow-y-auto modal-panel">
       <div class="flex items-center justify-between mb-3">
         <h2 class="text-lg font-semibold">Shipping Reference</h2>
