@@ -84,3 +84,21 @@ section.bg-white.rounded-2xl.shadow.p-5{
 @media (max-width: 640px){
   #getQuote{ width: 100%; }
 }
+
+/* --- Aviron watermark (bottom-right) --- */
+body::after{
+  content:"";
+  position: fixed;
+  right: 24px;               /* distance from edges */
+  bottom: 24px;
+  width: 220px;              /* size of the mark */
+  height: 220px;
+  background: url("Aviron Logo 2.jpg") no-repeat center / contain;
+  opacity: .06;              /* faint so the form stays legible */
+  filter: grayscale(1) contrast(1.05);
+  pointer-events: none;      /* clicks pass through */
+  z-index: 0;
+}
+/* make the card sit above the watermark */
+.card { position: relative; z-index: 1; }
+
