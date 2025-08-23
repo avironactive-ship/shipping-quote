@@ -1,11 +1,9 @@
 // ui/script.js
 
-// API base: if opened as file:// use localhost; if hosted with API, use relative /api
-// production points to Render, local stays on localhost
+// API base (kept as-is: GH Pages -> Render, localhost -> local)
 const ALT_API  = 'http://localhost:3000/api';
 const PROD_API = 'https://shipping-quote-api.onrender.com/api';
 const API = (location.hostname === 'localhost') ? ALT_API : PROD_API;
-
 
 const $ = (id) => document.getElementById(id);
 
@@ -13,15 +11,17 @@ let PRODUCT_PRESETS = {};
 let SERVICE_OPTIONS = {};
 let APP_RULES = null;
 
-// Unit labels for clarity (defaults to "units")
-const UNIT_BY_PRODUCT = {
-  "TSR1 RB": "pairs",
-  "TSR1 FS": "pairs",
-  "TSR1 FA": "pair",
-  "ISR/TSR - HW Stopper & TSR - HW73": "sets",
-};
+// Items that are counted in pairs — we’ll reflect this in the description text only.
+const PAIR_ITEMS = new Set(['TSR1 RB', 'TSR1 FS', 'TSR1 FA']);
 
-// Explicit max-per-package map used on the client (for add-on overflow math)
+function formattedDesc(key) {
+  const base = PRODUCT_PRESETS[key]?.desc || '';
+  // Only annotate these three SKUs
+  if (PAIR_ITEMS.has(key)) return `${base} (pair)`;
+  return base;
+}
+
+// Explicit max-per-package map (unchanged; used for add-on logic)
 const MAX_PER_PKG_MAP = {
   "TSR1 RB": 6,
   "TSR1 FS": 6,
@@ -29,8 +29,11 @@ const MAX_PER_PKG_MAP = {
   "TSR1 RM": 1,
   "TSR1 PA": 1,
   "ISR/TSR - HW Stopper & TSR - HW73": 6,
-  // Unlisted defaults to 1
 };
+
+// ===== Country combobox (same as before) =====
+/* ... everything in your existing combobox implementation stays the same ... */
+
 
 /* =========================
    Country combobox (searchable)
@@ -123,9 +126,9 @@ function setLoading(isLoading, msg = '') {
   $("status").textContent = msg || (isLoading ? "Contacting UPS…" : "");
 }
 
-// NOTE: currency is ignored on purpose; we only display the numeric price.
+// Show CAD after the number
 function showResult(rate, _currency, meta) {
-  $("result").textContent = Number(rate).toFixed(2);
+  $("result").textContent = `${Number(rate).toFixed(2)} CAD`;
 
   const negotiatedLine = meta?.negotiated ? "Negotiated rate applied." : "Standard rate (no negotiated pricing found).";
   const adj = meta?.adjustments;
@@ -143,25 +146,26 @@ function showError(msg) {
   $("resultCard").classList.add("hidden");
 }
 
-// MAIN product selection → fill dims/weight, signature note, unit label
+// MAIN product selection → fill dims/weight, signature note, and description with (pair) where applicable
 function applyPreset(key) {
   const p = PRODUCT_PRESETS[key];
   if (!p) return;
-  $("productDesc").textContent = p.desc || '';
+  $("productDesc").textContent = formattedDesc(key);
   $("length").value = p.length ?? '';
   $("width").value  = p.width  ?? '';
   $("height").value = p.height ?? '';
   $("weight").value = p.weight ?? '';
   $("sigNote").classList.toggle("hidden", !p.signature);
-  $("qtyUnit").textContent = "";
+  const unitEl = $("qtyUnit");
+  if (unitEl) unitEl.textContent = ""; // keep blank; we show pair info in the description now
   updateAddonNote();
 }
 
-// ADD-ON description
+// ADD-ON description (also reflect "(pair)" where needed)
 function updateAddonDesc() {
   const k = $("addonProduct").value;
-  const d = PRODUCT_PRESETS[k]?.desc || '';
-  $("addonDesc").textContent = d;
+  const d = formattedDesc(k);
+  $("addonDesc").textContent = d || '';
   $("addonDesc").classList.toggle('hidden', !d);
 }
 
@@ -182,29 +186,17 @@ async function apiPost(path, body) {
   return data;
 }
 
-// ---------- Rules helpers (front-end only add-on calc) ----------
-function getSize(key) {
-  return PRODUCT_PRESETS[key]?.size || 'medium';
-}
-function getMaxPerPkg(key) {
-  if (key in MAX_PER_PKG_MAP) return MAX_PER_PKG_MAP[key];
-  return 1;
-}
+// ---------- Rules helpers (unchanged) ----------
+function getSize(key) { return PRODUCT_PRESETS[key]?.size || 'medium'; }
+function getMaxPerPkg(key) { return (key in MAX_PER_PKG_MAP) ? MAX_PER_PKG_MAP[key] : 1; }
 
-// For a LARGE main: add-on rides in large up to its max; overflow → +$4 per extra package.
-// For SMALL/MEDIUM main + SMALL/MEDIUM add-on: treat add-on as separate package(s) at +$4 per package.
-// (Large add-on is disallowed by UI, but we guard anyway.)
 function computeAddonSurcharge(mainKey, mainQty, addonKey, addonQty) {
   const qty = Math.max(0, parseInt(addonQty || 0, 10));
   if (!addonKey || qty <= 0) return { amount: 0, details: "" };
-
   const mainSize  = getSize(mainKey);
   const addonSize = getSize(addonKey);
   const max = getMaxPerPkg(addonKey);
-
-  let extraPkgs = 0;
-  let details = "";
-
+  let extraPkgs = 0, details = "";
   if (addonSize === 'large') {
     extraPkgs = Math.ceil(qty / max);
     details = `Large add-on: ${qty} item(s) → ${extraPkgs} extra pkg(s).`;
@@ -217,7 +209,6 @@ function computeAddonSurcharge(mainKey, mainQty, addonKey, addonQty) {
     extraPkgs = Math.ceil(qty / max);
     details = `Small/medium main + add-on: add-on needs ${extraPkgs} package(s).`;
   }
-
   return { amount: extraPkgs * 4, details };
 }
 
@@ -227,18 +218,16 @@ function updateAddonNote() {
   const el = $("addonNote");
   if (size === 'large') {
     el.textContent = "Selected product is a large item (e.g., screen). Add-ons (small/medium) use the large package’s rate; overflow creates extra packages at +$4 each.";
-    el.classList.remove("hidden");
   } else {
     el.textContent = "Small/medium-only shipments treat add-ons as separate package(s): +$4 per package.";
-    el.classList.remove("hidden");
   }
+  el.classList.remove("hidden");
 }
 
 // ---------- Popovers & Modal ----------
 function attachPopover(triggerEl, getHtml) {
   if (!triggerEl) return;
   let pop = null;
-
   const show = () => {
     const html = typeof getHtml === 'function' ? getHtml() : getHtml;
     pop = document.createElement('div');
@@ -248,7 +237,6 @@ function attachPopover(triggerEl, getHtml) {
     pop.style.left = `${r.left + window.scrollX}px`;
     pop.style.top  = `${r.bottom + window.scrollY}px`;
     document.body.appendChild(pop);
-
     const hide = (e) => {
       if (pop && !pop.contains(e.target) && e.target !== triggerEl) {
         pop.remove(); pop = null;
@@ -257,13 +245,13 @@ function attachPopover(triggerEl, getHtml) {
     };
     setTimeout(() => document.addEventListener('click', hide), 0);
   };
-
   triggerEl.addEventListener('click', (e) => {
     e.stopPropagation();
     pop ? (pop.remove(), pop = null) : show();
   });
 }
 
+// Reference modal: **remove** the “Maximum quantities…” table and the rule-of-thumb list
 function openReferenceModal() {
   const m = $("refModal");
   const c = $("refContent");
@@ -273,38 +261,25 @@ function openReferenceModal() {
     <div>
       <div class="font-medium mb-1">${title}</div>
       <table class="w-full text-left border">
-        <thead><tr class="bg-slate-50"><th class="p-2 border">Code</th><th class="p-2 border">Service</th><th class="p-2 border">Delivery time</th></tr></thead>
+        <thead>
+          <tr class="bg-slate-50">
+            <th class="p-2 border">Code</th>
+            <th class="p-2 border">Service</th>
+            <th class="p-2 border">Delivery time</th>
+          </tr>
+        </thead>
         <tbody>
-          ${(rows || []).map(s => `<tr><td class="p-2 border">${s.code}</td><td class="p-2 border">${s.name}</td><td class="p-2 border">${s.eta}</td></tr>`).join('')}
+          ${(rows || []).map(s =>
+            `<tr><td class="p-2 border">${s.code}</td><td class="p-2 border">${s.name}</td><td class="p-2 border">${s.eta}</td></tr>`
+          ).join('')}
         </tbody>
       </table>
-    </div>`;
-
-  const maxQty = `
-    <div>
-      <div class="font-medium mb-1">Maximum quantities per shipment (1 package)</div>
-      <table class="w-full text-left border">
-        <thead><tr class="bg-slate-50"><th class="p-2 border">Item</th><th class="p-2 border">Qty</th><th class="p-2 border">Notes</th></tr></thead>
-        <tbody>
-          ${(r.maxPerPackage || []).map(it => `<tr><td class="p-2 border">${it.item}</td><td class="p-2 border">${it.qty}</td><td class="p-2 border">${it.note || ''}</td></tr>`).join('')}
-        </tbody>
-      </table>
-    </div>`;
-
-  const combo = `
-    <div>
-      <div class="font-medium mb-1">Rules of thumb (multiple product types)</div>
-      <ul class="list-disc pl-5">
-        ${(r.combinationRules || []).map(x => `<li class="mb-1">${x}</li>`).join('')}
-      </ul>
     </div>`;
 
   c.innerHTML = `
     ${section("Canada (Domestic)", r.serviceReference?.CA)}
     ${section("Canada → United States", r.serviceReference?.["CA→US"])}
     ${section("Canada → International", r.serviceReference?.["CA→INTL"])}
-    ${maxQty}
-    ${combo}
   `;
 
   m.classList.remove('hidden'); m.classList.add('flex');
@@ -321,7 +296,7 @@ async function loadMeta() {
   SERVICE_OPTIONS = services || {};
   APP_RULES = rules || {};
 
-  // Main product select
+  // Item code select
   const productKeys = Object.keys(PRODUCT_PRESETS);
   $("product").innerHTML = productKeys.map(k => `<option value="${k}">${k}</option>`).join("");
   if (productKeys.length) applyPreset(productKeys[0]);
@@ -334,7 +309,8 @@ async function loadMeta() {
     })
     .map(k => `<option value="${k}">${k}</option>`)
     .join("");
-  $("addonProduct").insertAdjacentHTML('beforeend', addonOptions);
+  const addonEl = $("addonProduct");
+  addonEl.innerHTML = `<option value="">— None —</option>${addonOptions}`;
   updateAddonDesc();
   updateAddonNote();
 
@@ -369,7 +345,7 @@ async function handleAutoFillState() {
   try {
     $("status").textContent = "Looking up state/province…";
     const postalCode = $("postal").value.trim();
-    const countryCode = $("country").value; // hidden alpha-2 code from combobox
+    const countryCode = $("country").value;
     const { stateCode } = await apiPost('/state', { postalCode, countryCode });
     $("state").value = stateCode || '';
     $("status").textContent = stateCode ? "State filled." : "No match found for state.";
@@ -383,7 +359,7 @@ function validateInputs() {
     product: $("product").value,
     qty: parseInt($("qty").value, 10),
     postal: $("postal").value.trim(),
-    country: $("country").value, // hidden alpha-2 code
+    country: $("country").value,
     state: $("state").value.trim(),
     length: parseFloat($("length").value),
     width:  parseFloat($("width").value),
@@ -418,7 +394,7 @@ async function handleSubmit(e) {
       productKey: mainKey,
       quantity: parseInt($("qty").value, 10) || 1,
       postalCode: $("postal").value.trim(),
-      country: $("country").value,        // hidden alpha-2 code
+      country: $("country").value,
       stateCode: $("state").value.trim(),
       length: parseFloat($("length").value),
       width:  parseFloat($("width").value),
@@ -429,10 +405,9 @@ async function handleSubmit(e) {
       residential: true,
     };
 
-    // 1) Get base/server-calculated rate for the main product only
     const { rate, currency, meta } = await apiPost('/rate', payload);
 
-    // 2) Client-side add-on adjustment (no backend changes)
+    // Client-side add-on adjustment (unchanged)
     const addonKey = $("addonProduct").value;
     const addonQty = parseInt($("addonQty").value, 10) || 0;
     const addonAdj = computeAddonSurcharge(mainKey, payload.quantity, addonKey, addonQty);
@@ -457,14 +432,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     $("status").textContent = "Meta load failed; using fallback options.";
   }
 
-  // NEW: initialize country combobox (defaults to CA)
   setupCountryCombobox();
 
   $("product").addEventListener("change", (e) => applyPreset(e.target.value));
-  $("addonProduct").addEventListener("change", () => {
-    updateAddonDesc();
-    updateAddonNote();
-  });
+  $("addonProduct").addEventListener("change", () => { updateAddonDesc(); updateAddonNote(); });
   $("autofillState").addEventListener("click", handleAutoFillState);
   $("quoteForm").addEventListener("submit", handleSubmit);
 
@@ -473,5 +444,5 @@ document.addEventListener("DOMContentLoaded", async () => {
   $("openRefLink")?.addEventListener("click", openReferenceModal);
 });
 
-// Expose modal opener for inline handler in the service popover
+// Expose for inline handler
 window.openReferenceModal = openReferenceModal;
