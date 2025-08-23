@@ -85,20 +85,31 @@ section.bg-white.rounded-2xl.shadow.p-5{
   #getQuote{ width: 100%; }
 }
 
-/* --- Aviron watermark (bottom-right) --- */
-body::after{
-  content:"";
+/* === Full-page centered watermark === */
+/* Put the logo file in ui/img/logo-aviron.png (transparent PNG recommended) */
+body::before{
+  content: "";
   position: fixed;
-  right: 24px;               /* distance from edges */
-  bottom: 24px;
-  width: 220px;              /* size of the mark */
-  height: 220px;
-  background: url("Aviron Logo 2.jpg") no-repeat center / contain;
-  opacity: .06;              /* faint so the form stays legible */
+  top: 12vh;                      /* vertical position of the artwork */
+  left: 50%;
+  transform: translateX(-50%);    /* perfectly center horizontally */
+  width: min(92vw, 1200px);       /* span left & right; cap max size */
+  height: min(70vh, 800px);
+  background: url("img/logo-aviron.png") no-repeat center / contain;
+  opacity: 0.06;                  /* subtle; adjust 0.03–0.10 to taste */
   filter: grayscale(1) contrast(1.05);
-  pointer-events: none;      /* clicks pass through */
-  z-index: 0;
+  pointer-events: none;           /* don’t block clicks */
+  z-index: 0;                     /* keep behind everything */
 }
-/* make the card sit above the watermark */
-.card { position: relative; z-index: 1; }
+
+/* Make sure the app content sits above the watermark */
+.app-card { position: relative; z-index: 1; }
+
+/* Optional: on smaller screens, soften or hide the mark */
+@media (max-width: 1024px){
+  body::before { opacity: 0.04; width: 115vw; }
+}
+@media (max-width: 640px){
+  body::before { display: none; } /* hide on phones if it feels busy */
+}
 
