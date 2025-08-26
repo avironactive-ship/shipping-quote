@@ -90,9 +90,9 @@ section.bg-white.rounded-2xl.shadow.p-5{
 body {
   /* keep your Tailwind background but add a layered gradient */
   background:
-    radial-gradient(700px 280px at 15% 22%, rgba(99,102,241,0.10), transparent 55%),
-    radial-gradient(900px 360px at 85% 72%, rgba(56,189,248,0.10), transparent 55%),
-    #f8fafc; /* fallback color (slate-50) */
+    radial-gradient(850px 320px at 18% 28%, rgba(99,102,241,0.18), rgba(99,102,241,0) 60%),
+    radial-gradient(1100px 420px at 82% 78%, rgba(56,189,248,0.16), rgba(56,189,248,0) 60%),
+    #f8fafc; /* slate-50 fallback */
 }
 
 /* ========== Header ========== */
