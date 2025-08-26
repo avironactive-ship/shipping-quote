@@ -120,27 +120,44 @@ button#getQuote:active{ transform: translateY(0); }
   border-left: 4px solid rgba(37,99,235,0.35); /* blue accent line */
 }
 
+/* Left portrait */
+/* ---- Layout variables (match your content width) ---- */
+:root{
+  --shell: 48rem;     /* your main content max width (Tailwind max-w-3xl = 48rem) */
+  --gap: 28px;        /* space between the portrait and the card */
+  --art-max-h: 86vh;  /* max height of the portrait area (keeps full image visible) */
+  --art-cap: 820px;   /* hard cap so it doesn’t get too huge on giant screens */
+}
 
-/* Keep the form/card above any background art */
+/* keep the form above any background art */
 .app-card { position: relative; z-index: 1; }
 
-/* Left-side full image, always fully visible (no cropping) */
+/* ---- Left portrait, always fully visible, never under the card ---- */
 .bg-left-portrait{
   position: fixed;
   top: 50%;
-  left: max(12px, 4vw);          /* nudge from left edge */
-  transform: translateY(-50%);   /* vertical center */
-  height: min(88vh, 900px);      /* fit within viewport height */
-  aspect-ratio: 601 / 937;       /* keep the photo’s natural ratio */
-  background: url("left-portrait.jpg.jpg") center / contain no-repeat;
-  opacity: 0.12;                 /* subtle; adjust 0.06–0.18 to taste */
-  pointer-events: none;          /* clicks pass through */
+  /* anchor to the LEFT EDGE of the centered shell, then place the portrait entirely to the left */
+  left: calc(50% - var(--shell) / 2 - var(--gap));
+  transform: translate(-100%, -50%); /* right edge of the image hugs that anchor */
+  height: min(var(--art-max-h), var(--art-cap));
+  aspect-ratio: 601 / 937;  /* keep the photo’s natural ratio */
+  background: url("img/left-portrait.jpg") center / contain no-repeat;
+  opacity: 0.14;           /* adjust 0.08–0.20 to taste */
+  filter: contrast(1.05);
+  pointer-events: none;
   z-index: 0;
-  filter: grayscale(0) contrast(1.02);
 }
 
-/* Optional: tone down on tablets, hide on phones */
-@media (max-width: 1024px){ .bg-left-portrait{ opacity: 0.08; } }
-@media (max-width: 640px){  .bg-left-portrait{ display: none; } }
+/* tablet: slightly smaller & softer */
+@media (max-width: 1024px){
+  :root{ --shell: 42rem; --gap: 20px; --art-max-h: 78vh; }
+  .bg-left-portrait{ opacity: 0.10; }
+}
+
+/* mobile: hide (no room) */
+@media (max-width: 768px){
+  .bg-left-portrait{ display: none; }
+}
+
 
 
