@@ -85,31 +85,39 @@ section.bg-white.rounded-2xl.shadow.p-5{
   #getQuote{ width: 100%; }
 }
 
-/* === Full-page centered watermark === */
-/* Put the logo file in ui/img/logo-aviron.png (transparent PNG recommended) */
-body::before{
-  content: "";
-  position: fixed;
-  top: 12vh;                      /* vertical position of the artwork */
-  left: 50%;
-  transform: translateX(-50%);    /* perfectly center horizontally */
-  width: min(92vw, 1200px);       /* span left & right; cap max size */
-  height: min(70vh, 800px);
-  background: url("Aviron Logo 2.jpg") no-repeat center / contain;
-  opacity: 0.06;                  /* subtle; adjust 0.03–0.10 to taste */
-  filter: grayscale(1) contrast(1.05);
-  pointer-events: none;           /* don’t block clicks */
-  z-index: 0;                     /* keep behind everything */
+/* ========== Page background (left + right soft glow) ========== */
+/* Works great behind a centered card; no extra HTML required. */
+body {
+  /* keep your Tailwind background but add a layered gradient */
+  background:
+    radial-gradient(700px 280px at 15% 22%, rgba(99,102,241,0.10), transparent 55%),
+    radial-gradient(900px 360px at 85% 72%, rgba(56,189,248,0.10), transparent 55%),
+    #f8fafc; /* fallback color (slate-50) */
 }
 
-/* Make sure the app content sits above the watermark */
-.app-card { position: relative; z-index: 1; }
+/* ========== Header ========== */
+.brand-header img { filter: grayscale(0); }
 
-/* Optional: on smaller screens, soften or hide the mark */
-@media (max-width: 1024px){
-  body::before { opacity: 0.04; width: 115vw; }
+/* ========== Card polish ========== */
+.app-card{
+  position: relative;
+  box-shadow: 0 10px 30px -10px rgba(2,6,23,0.15), 0 2px 8px rgba(2,6,23,0.06);
+  border: 1px solid rgba(15,23,42,0.06);
 }
-@media (max-width: 640px){
-  body::before { display: none; } /* hide on phones if it feels busy */
+
+/* ========== Primary button (slightly elevated) ========== */
+button#getQuote{
+  box-shadow:
+    0 6px 14px rgba(37,99,235,0.25),
+    inset 0 1px 0 rgba(255,255,255,0.2);
+  transition: transform .06s ease, box-shadow .2s ease;
 }
+button#getQuote:hover{ transform: translateY(-1px); }
+button#getQuote:active{ transform: translateY(0); }
+
+/* ========== Result card accent ========== */
+#resultCard{
+  border-left: 4px solid rgba(37,99,235,0.35); /* blue accent line */
+}
+
 
