@@ -132,7 +132,7 @@ button#getQuote:active{ transform: translateY(0); }
   transform: translateY(-50%);   /* vertical center */
   height: min(88vh, 900px);      /* fit within viewport height */
   aspect-ratio: 601 / 937;       /* keep the photo’s natural ratio */
-  background: url("left-portrait.jpg") center / contain no-repeat;
+  background: url("left-portrait.jpg.jpg") center / contain no-repeat;
   opacity: 0.12;                 /* subtle; adjust 0.06–0.18 to taste */
   pointer-events: none;          /* clicks pass through */
   z-index: 0;
