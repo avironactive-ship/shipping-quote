@@ -141,7 +141,7 @@ button#getQuote:active{ transform: translateY(0); }
   transform: translate(-100%, -50%); /* right edge of the image hugs that anchor */
   height: min(var(--art-max-h), var(--art-cap));
   aspect-ratio: 601 / 937;  /* keep the photo’s natural ratio */
-  background: url("img/left-portrait.jpg") center / contain no-repeat;
+  background: url("left-portrait.jpg.jpg") center / contain no-repeat;
   opacity: 0.14;           /* adjust 0.08–0.20 to taste */
   filter: contrast(1.05);
   pointer-events: none;
