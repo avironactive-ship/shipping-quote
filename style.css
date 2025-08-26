@@ -121,3 +121,26 @@ button#getQuote:active{ transform: translateY(0); }
 }
 
 
+/* Keep the form/card above any background art */
+.app-card { position: relative; z-index: 1; }
+
+/* Left-side full image, always fully visible (no cropping) */
+.bg-left-portrait{
+  position: fixed;
+  top: 50%;
+  left: max(12px, 4vw);          /* nudge from left edge */
+  transform: translateY(-50%);   /* vertical center */
+  height: min(88vh, 900px);      /* fit within viewport height */
+  aspect-ratio: 601 / 937;       /* keep the photo’s natural ratio */
+  background: url("img/left-portrait.jpg") center / contain no-repeat;
+  opacity: 0.12;                 /* subtle; adjust 0.06–0.18 to taste */
+  pointer-events: none;          /* clicks pass through */
+  z-index: 0;
+  filter: grayscale(0) contrast(1.02);
+}
+
+/* Optional: tone down on tablets, hide on phones */
+@media (max-width: 1024px){ .bg-left-portrait{ opacity: 0.08; } }
+@media (max-width: 640px){  .bg-left-portrait{ display: none; } }
+
+
