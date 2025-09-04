@@ -7,18 +7,26 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="style.css" />
   <!-- optional favicon -->
-  <link rel="icon" href="Aviron Logo 2.jpg" type="image/jpg"> 
+  <link rel="icon" href="Aviron Logo 2.jpg" type="image/jpg">
 </head>
 <body class="min-h-screen bg-slate-50 text-slate-800">
   <main class="max-w-3xl mx-auto p-6">
     <!-- Header with logo on the right -->
-    <header class="mb-6 flex items-center justify-between brand-header">
+    <header class="mb-4 flex items-center justify-between brand-header">
       <div>
         <h1 class="text-2xl font-semibold">UPS Shipping Quote Generator</h1>
         <p class="text-sm text-slate-600">Calculate live UPS negotiated rates based on item code.</p>
       </div>
       <img src="Aviron Logo 2.jpg" alt="Aviron" class="h-12 md:h-14 w-auto opacity-92" />
     </header>
+
+    <!-- Wake-up banner (auto-shows if server is cold) -->
+    <div id="wakeBanner" class="hidden mb-4 rounded-xl border border-amber-300 bg-amber-50 text-amber-800 p-3 text-sm" role="alert" aria-live="polite">
+      <div class="flex items-start gap-2">
+        <div>🟡 <span id="wakeText">Waking the server… this can take 30–60 seconds on first load.</span></div>
+        <button id="wakeClose" type="button" class="ml-auto px-2 -mt-1 text-amber-700/70">✕</button>
+      </div>
+    </div>
 
     <section class="app-card bg-white rounded-2xl shadow p-5">
       <form id="quoteForm" class="space-y-6">
