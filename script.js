@@ -26,22 +26,150 @@ const MAX_PER_PKG_MAP = {
 };
 
 /* =========================
-   Country combobox (searchable)
+   Country combobox (searchable) — robust version
    ========================= */
-const ISO_REGION_CODES = [/* … same as before … */];
-const regionNames = new Intl.DisplayNames(['en'], { type: 'region' });
+
+// ISO-3166 alpha-2 region codes (includes territories)
+const ISO_REGION_CODES = [
+  "AF","AX","AL","DZ","AS","AD","AO","AI","AQ","AG","AR","AM","AW","AU","AT","AZ","BS","BH","BD","BB","BY","BE","BZ","BJ","BM","BT","BO","BQ","BA","BW","BV","BR","IO","BN","BG","BF","BI",
+  "KH","CM","CA","CV","KY","CF","TD","CL","CN","CX","CC","CO","KM","CG","CD","CK","CR","CI","HR","CU","CW","CY","CZ","DK","DJ","DM","DO","EC","EG","SV","GQ","ER","EE","SZ","ET","FK","FO","FJ",
+  "FI","FR","GF","PF","TF","GA","GM","GE","DE","GH","GI","GR","GL","GD","GP","GU","GT","GG","GN","GW","GY","HT","HM","VA","HN","HK","HU","IS","IN","ID","IR","IQ","IE","IM","IL","IT","JM","JP",
+  "JE","JO","KZ","KE","KI","KP","KR","KW","KG","LA","LV","LB","LS","LR","LY","LI","LT","LU","MO","MK","MG","MW","MY","MV","ML","MT","MH","MQ","MR","MU","YT","MX","FM","MD","MC","MN","ME","MS",
+  "MA","MZ","MM","NA","NR","NP","NL","NC","NZ","NI","NE","NG","NU","NF","MP","NO","OM","PK","PW","PS","PA","PG","PY","PE","PH","PN","PL","PT","PR","QA","RE","RO","RU","RW","BL","SH","KN","LC",
+  "MF","PM","VC","WS","SM","ST","SA","SN","RS","SC","SL","SG","SX","SK","SI","SB","SO","ZA","GS","SS","ES","LK","SD","SR","SJ","SE","CH","SY","TW","TJ","TZ","TH","TL","TG","TK","TO","TT","TN",
+  "TR","TM","TC","TV","UG","UA","AE","GB","US","UM","UY","UZ","VU","VE","VN","VG","VI","WF","EH","YE","ZM","ZW"
+];
+
+// Build [{code, name, norm}] using the browser's locale names (fallback to code)
+const regionNames = (typeof Intl?.DisplayNames === 'function')
+  ? new Intl.DisplayNames(['en'], { type: 'region' })
+  : null;
+
 const COUNTRIES = ISO_REGION_CODES
-  .map(code => ({ code, name: regionNames.of(code) }))
-  .filter(x => x.name && x.name !== x.code)
-  .map(x => ({ ...x, norm: x.name.toLowerCase() }))
+  .map(code => {
+    const name = regionNames?.of?.(code) || code;
+    return { code, name, norm: name.toLowerCase() };
+  })
+  .filter(x => x.name && x.name !== x.code) // drop entries that didn’t resolve to a real name
   .sort((a,b) => a.name.localeCompare(b.name));
 
+// Common name overrides (helpful shortcuts)
+const NAME_TO_CODE_OVERRIDES = {
+  'us': 'US', 'usa': 'US', 'united states': 'US', 'united states of america': 'US',
+  'uk': 'GB', 'united kingdom': 'GB', 'england': 'GB', 'scotland': 'GB', 'wales': 'GB',
+  'uae': 'AE', 'emirates': 'AE',
+  'south korea': 'KR', 'korea': 'KR',
+  'north korea': 'KP',
+  'czech republic': 'CZ',
+  'russia': 'RU',
+  'vietnam': 'VN',
+  'laos': 'LA',
+};
+
+function resolveCountryInputToCode(str) {
+  const q = (str || '').trim().toLowerCase();
+  if (!q) return '';
+  if (NAME_TO_CODE_OVERRIDES[q]) return NAME_TO_CODE_OVERRIDES[q];
+
+  // exact name
+  let exact = COUNTRIES.find(c => c.norm === q);
+  if (exact) return exact.code;
+
+  // startsWith (unique)
+  const starts = COUNTRIES.filter(c => c.norm.startsWith(q));
+  if (starts.length === 1) return starts[0].code;
+
+  // includes (unique)
+  const incl = COUNTRIES.filter(c => c.norm.includes(q));
+  if (incl.length === 1) return incl[0].code;
+
+  return '';
+}
+
 function setupCountryCombobox() {
-  const input = $('countryCombo'), hidden = $('country'), menu = $('countryMenu'), clearBtn = $('countryClear');
+  const input   = document.getElementById('countryCombo'); // visible input
+  const hidden  = document.getElementById('country');      // 2-letter code
+  const menu    = document.getElementById('countryMenu');
+  const clearBtn= document.getElementById('countryClear');
+
   function setCountryByCode(code) {
     const found = COUNTRIES.find(c => c.code === code);
-    if (found) { hidden.value = found.code; input.value = found.name; clearBtn.classList.remove('hidden'); }
+    if (found) {
+      hidden.value = found.code;
+      input.value  = found.name;
+      clearBtn.classList.remove('hidden');
+    }
   }
+
+  function renderMenu(query = '') {
+    const q = query.trim().toLowerCase();
+    const items = (q ? COUNTRIES.filter(c => c.norm.includes(q)) : COUNTRIES).slice(0, 75);
+    menu.innerHTML = items.map(c =>
+      `<div role="option" data-code="${c.code}" class="px-3 py-2 hover:bg-slate-100 cursor-pointer">${c.name}</div>`
+    ).join('');
+    menu.classList.toggle('hidden', items.length === 0);
+  }
+
+  function closeMenu() { menu.classList.add('hidden'); }
+
+  // open & filter
+  input.addEventListener('focus', () => renderMenu(input.value));
+  input.addEventListener('input', () => {
+    hidden.value = '';                   // clear actual code until chosen/resolved
+    clearBtn.classList.add('hidden');
+    renderMenu(input.value);
+  });
+
+  // Enter key → choose first visible / resolve typed text
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const first = menu.querySelector('[data-code]');
+      if (first) {
+        setCountryByCode(first.getAttribute('data-code'));
+        closeMenu();
+      } else {
+        const code = resolveCountryInputToCode(input.value);
+        if (code) setCountryByCode(code);
+        closeMenu();
+      }
+    }
+    if (e.key === 'Escape') closeMenu();
+  });
+
+  // Click option
+  menu.addEventListener('click', (e) => {
+    const opt = e.target.closest('[data-code]');
+    if (!opt) return;
+    setCountryByCode(opt.getAttribute('data-code'));
+    closeMenu();
+  });
+
+  // Blur → try to resolve typed text
+  input.addEventListener('blur', () => {
+    if (!hidden.value && input.value.trim()) {
+      const code = resolveCountryInputToCode(input.value);
+      if (code) setCountryByCode(code);
+    }
+  });
+
+  // Clear button
+  clearBtn.addEventListener('click', () => {
+    input.value = ''; hidden.value = '';
+    clearBtn.classList.add('hidden');
+    renderMenu('');
+    input.focus();
+  });
+
+  // Click outside closes menu
+  document.addEventListener('click', (e) => {
+    if (!menu.contains(e.target) && e.target !== input) closeMenu();
+  });
+
+  // Default to Canada if nothing chosen yet
+  setCountryByCode(hidden.value || 'CA');
+}
+
   function renderMenu(query = '') {
     const q = query.trim().toLowerCase();
     const items = (q ? COUNTRIES.filter(c => c.norm.includes(q)) : COUNTRIES).slice(0, 75);
