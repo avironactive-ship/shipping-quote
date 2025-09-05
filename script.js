@@ -1,6 +1,6 @@
 // ui/script.js
 
-// API base (kept as-is: GH Pages -> Render, localhost -> local)
+// API base (GH Pages -> Render, localhost -> local)
 const ALT_API  = 'http://localhost:3000/api';
 const PROD_API = 'https://shipping-quote-api.onrender.com/api';
 const API = (location.hostname === 'localhost') ? ALT_API : PROD_API;
@@ -11,22 +11,21 @@ let PRODUCT_PRESETS = {};
 let SERVICE_OPTIONS = {};
 let APP_RULES = null;
 
-// Items that are counted in pairs — we’ll reflect this in the description text only.
+// Items shown as "(pair)" in the description
 const PAIR_ITEMS = new Set(['TSR1 RB', 'TSR1 FS', 'TSR1 FA']);
 function formattedDesc(key) {
   const base = PRODUCT_PRESETS[key]?.desc || '';
-  if (PAIR_ITEMS.has(key)) return `${base} (pair)`;
-  return base;
+  return PAIR_ITEMS.has(key) ? `${base} (pair)` : base;
 }
 
-// Explicit max-per-package map (unchanged; used for add-on logic)
+// Explicit max-per-package map (used for add-on logic)
 const MAX_PER_PKG_MAP = {
   "TSR1 RB": 6, "TSR1 FS": 6, "TSR1 FA": 1,
   "TSR1 RM": 1, "TSR1 PA": 1, "ISR/TSR - HW Stopper & TSR - HW73": 6,
 };
 
 /* =========================
-   Country combobox (searchable) — robust version
+   Country combobox (searchable) — robust
    ========================= */
 
 // ISO-3166 alpha-2 region codes (includes territories)
@@ -48,12 +47,12 @@ const regionNames = (typeof Intl?.DisplayNames === 'function')
 const COUNTRIES = ISO_REGION_CODES
   .map(code => {
     const name = regionNames?.of?.(code) || code;
-    return { code, name, norm: name.toLowerCase() };
+    return { code, name, norm: String(name).toLowerCase() };
   })
-  .filter(x => x.name && x.name !== x.code) // drop entries that didn’t resolve to a real name
+  .filter(x => x.name && x.name !== x.code)
   .sort((a,b) => a.name.localeCompare(b.name));
 
-// Common name overrides (helpful shortcuts)
+// Common name overrides (handy shortcuts)
 const NAME_TO_CODE_OVERRIDES = {
   'us': 'US', 'usa': 'US', 'united states': 'US', 'united states of america': 'US',
   'uk': 'GB', 'united kingdom': 'GB', 'england': 'GB', 'scotland': 'GB', 'wales': 'GB',
@@ -71,7 +70,7 @@ function resolveCountryInputToCode(str) {
   if (!q) return '';
   if (NAME_TO_CODE_OVERRIDES[q]) return NAME_TO_CODE_OVERRIDES[q];
 
-  // exact name
+  // exact match
   let exact = COUNTRIES.find(c => c.norm === q);
   if (exact) return exact.code;
 
@@ -87,10 +86,10 @@ function resolveCountryInputToCode(str) {
 }
 
 function setupCountryCombobox() {
-  const input   = document.getElementById('countryCombo'); // visible input
-  const hidden  = document.getElementById('country');      // 2-letter code
-  const menu    = document.getElementById('countryMenu');
-  const clearBtn= document.getElementById('countryClear');
+  const input   = $('countryCombo');
+  const hidden  = $('country');
+  const menu    = $('countryMenu');
+  const clearBtn= $('countryClear');
 
   function setCountryByCode(code) {
     const found = COUNTRIES.find(c => c.code === code);
@@ -112,32 +111,28 @@ function setupCountryCombobox() {
 
   function closeMenu() { menu.classList.add('hidden'); }
 
-  // open & filter
   input.addEventListener('focus', () => renderMenu(input.value));
   input.addEventListener('input', () => {
-    hidden.value = '';                   // clear actual code until chosen/resolved
+    hidden.value = '';
     clearBtn.classList.add('hidden');
     renderMenu(input.value);
   });
 
-  // Enter key → choose first visible / resolve typed text
   input.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
       const first = menu.querySelector('[data-code]');
       if (first) {
         setCountryByCode(first.getAttribute('data-code'));
-        closeMenu();
       } else {
         const code = resolveCountryInputToCode(input.value);
         if (code) setCountryByCode(code);
-        closeMenu();
       }
+      closeMenu();
     }
     if (e.key === 'Escape') closeMenu();
   });
 
-  // Click option
   menu.addEventListener('click', (e) => {
     const opt = e.target.closest('[data-code]');
     if (!opt) return;
@@ -145,7 +140,6 @@ function setupCountryCombobox() {
     closeMenu();
   });
 
-  // Blur → try to resolve typed text
   input.addEventListener('blur', () => {
     if (!hidden.value && input.value.trim()) {
       const code = resolveCountryInputToCode(input.value);
@@ -153,42 +147,43 @@ function setupCountryCombobox() {
     }
   });
 
-  // Clear button
   clearBtn.addEventListener('click', () => {
-    input.value = ''; hidden.value = '';
+    input.value = '';
+    hidden.value = '';
     clearBtn.classList.add('hidden');
     renderMenu('');
     input.focus();
   });
 
-  // Click outside closes menu
   document.addEventListener('click', (e) => {
     if (!menu.contains(e.target) && e.target !== input) closeMenu();
   });
 
-  // Default to Canada if nothing chosen yet
+  // Default: Canada
   setCountryByCode(hidden.value || 'CA');
 }
 
-  function renderMenu(query = '') {
-    const q = query.trim().toLowerCase();
-    const items = (q ? COUNTRIES.filter(c => c.norm.includes(q)) : COUNTRIES).slice(0, 75);
-    menu.innerHTML = items.map(c =>
-      `<div role="option" data-code="${c.code}" class="px-3 py-2 hover:bg-slate-100 cursor-pointer">${c.name}</div>`
-    ).join('');
-    menu.classList.toggle('hidden', items.length === 0);
+// Resolve code even if the user typed and didn’t pick from the menu
+function getCountryCode() {
+  const hidden = $('country')?.value || '';
+  if (hidden) return hidden;
+  const typed = $('countryCombo')?.value || '';
+  const code = resolveCountryInputToCode(typed);
+  if (code) {
+    const hiddenEl = $('country');
+    const inputEl  = $('countryCombo');
+    if (hiddenEl && inputEl) {
+      hiddenEl.value = code;
+      const found = COUNTRIES.find(c => c.code === code);
+      if (found) inputEl.value = found.name;
+    }
   }
-  function closeMenu() { menu.classList.add('hidden'); }
-  input.addEventListener('focus', () => renderMenu(input.value));
-  input.addEventListener('input', () => { hidden.value = ''; clearBtn.classList.add('hidden'); renderMenu(input.value); });
-  input.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMenu(); });
-  menu.addEventListener('click', (e) => { const opt = e.target.closest('[data-code]'); if (!opt) return; setCountryByCode(opt.getAttribute('data-code')); closeMenu(); });
-  clearBtn.addEventListener('click', () => { input.value = ''; hidden.value = ''; clearBtn.classList.add('hidden'); renderMenu(''); input.focus(); });
-  document.addEventListener('click', (e) => { if (!menu.contains(e.target) && e.target !== input) closeMenu(); });
-  setCountryByCode(hidden.value || 'CA');
+  return code || '';
 }
 
-// ---------- UI helpers ----------
+/* =========================
+   UI helpers
+   ========================= */
 function setLoading(isLoading, msg = '') {
   $("btnSpinner").classList.toggle("hidden", !isLoading);
   $("btnText").textContent = isLoading ? "Getting quote…" : "Get quote";
@@ -211,7 +206,9 @@ function showError(msg) {
   $("resultCard").classList.add("hidden");
 }
 
-// ---------- Wake banner helpers ----------
+/* =========================
+   Wake banner helpers
+   ========================= */
 function showWakeBanner(text = "Waking the server… this can take 30–60 seconds on first load.") {
   const b = $("wakeBanner"); if (!b) return;
   b.classList.remove("hidden");
@@ -219,7 +216,6 @@ function showWakeBanner(text = "Waking the server… this can take 30–60 secon
 }
 function hideWakeBanner() { $("wakeBanner")?.classList.add("hidden"); }
 
-// Ping /meta until it responds OK (max ~60s)
 async function pingMetaUntilUp({ timeoutMs = 60000, intervalMs = 5000 } = {}) {
   const end = Date.now() + timeoutMs;
   while (Date.now() < end) {
@@ -232,7 +228,9 @@ async function pingMetaUntilUp({ timeoutMs = 60000, intervalMs = 5000 } = {}) {
   return false;
 }
 
-// MAIN product selection → fill dims/weight + desc
+/* =========================
+   Product preset + Add-on helpers
+   ========================= */
 function applyPreset(key) {
   const p = PRODUCT_PRESETS[key];
   if (!p) return;
@@ -246,7 +244,6 @@ function applyPreset(key) {
   updateAddonNote();
 }
 
-// ADD-ON description
 function updateAddonDesc() {
   const k = $("addonProduct").value;
   const d = formattedDesc(k);
@@ -254,7 +251,9 @@ function updateAddonDesc() {
   $("addonDesc").classList.toggle('hidden', !d);
 }
 
-// ---------- API helpers ----------
+/* =========================
+   API helpers
+   ========================= */
 async function apiGet(path) {
   const res = await fetch(`${API}${path}`);
   if (!res.ok) throw new Error(`GET ${path} failed`);
@@ -271,9 +270,12 @@ async function apiPost(path, body) {
   return data;
 }
 
-// ---------- Rules helpers (unchanged) ----------
+/* =========================
+   Rules helpers (add-on surcharge)
+   ========================= */
 function getSize(key) { return PRODUCT_PRESETS[key]?.size || 'medium'; }
 function getMaxPerPkg(key) { return (key in MAX_PER_PKG_MAP) ? MAX_PER_PKG_MAP[key] : 1; }
+
 function computeAddonSurcharge(mainKey, mainQty, addonKey, addonQty) {
   const qty = Math.max(0, parseInt(addonQty || 0, 10));
   if (!addonKey || qty <= 0) return { amount: 0, details: "" };
@@ -281,13 +283,20 @@ function computeAddonSurcharge(mainKey, mainQty, addonKey, addonQty) {
   const addonSize = getSize(addonKey);
   const max = getMaxPerPkg(addonKey);
   let extraPkgs = 0, details = "";
-  if (addonSize === 'large') { extraPkgs = Math.ceil(qty / max); details = `Large add-on: ${qty} item(s) → ${extraPkgs} extra pkg(s).`; }
-  else if (mainSize === 'large') {
+  if (addonSize === 'large') {
+    extraPkgs = Math.ceil(qty / max);
+    details = `Large add-on: ${qty} item(s) → ${extraPkgs} extra pkg(s).`;
+  } else if (mainSize === 'large') {
     extraPkgs = Math.max(0, Math.ceil(qty / max) - 1);
-    details = extraPkgs ? `Large + small/medium: overflow beyond ${max}/pkg → ${extraPkgs} extra pkg(s).` : `Large + small/medium: within ${max}/pkg → no extra package.`;
-  } else { extraPkgs = Math.ceil(qty / max); details = `Small/medium main + add-on: add-on needs ${extraPkgs} package(s).`; }
+    details = extraPkgs ? `Large + small/medium: overflow beyond ${max}/pkg → ${extraPkgs} extra pkg(s).`
+                        : `Large + small/medium: within ${max}/pkg → no extra package.`;
+  } else {
+    extraPkgs = Math.ceil(qty / max);
+    details = `Small/medium main + add-on: add-on needs ${extraPkgs} package(s).`;
+  }
   return { amount: extraPkgs * 4, details };
 }
+
 function updateAddonNote() {
   const mainKey = $("product").value;
   const size = getSize(mainKey);
@@ -300,7 +309,9 @@ function updateAddonNote() {
   el.classList.remove("hidden");
 }
 
-// ---------- Popovers & Modal ----------
+/* =========================
+   Reference modal
+   ========================= */
 function attachPopover(triggerEl, getHtml) {
   if (!triggerEl) return;
   let pop = null;
@@ -328,6 +339,7 @@ function openReferenceModal() {
   const m = $("refModal");
   const c = $("refContent");
   const r = APP_RULES || {};
+
   const section = (title, rows = []) => `
     <div>
       <div class="font-medium mb-1">${title}</div>
@@ -346,16 +358,20 @@ function openReferenceModal() {
         </tbody>
       </table>
     </div>`;
+
   c.innerHTML = `
     ${section("Canada (Domestic)", r.serviceReference?.CA)}
     ${section("Canada → United States", r.serviceReference?.["CA→US"])}
     ${section("Canada → International", r.serviceReference?.["CA→INTL"])}
   `;
+
   m.classList.remove('hidden'); m.classList.add('flex');
 }
 function closeReferenceModal() { const m = $("refModal"); m.classList.add('hidden'); m.classList.remove('flex'); }
 
-// ---------- Load meta ----------
+/* =========================
+   Loading metadata
+   ========================= */
 async function loadMeta() {
   const { products, services, rules } = await apiGet('/meta');
   PRODUCT_PRESETS = products || {};
@@ -405,12 +421,14 @@ async function loadMeta() {
   `);
 }
 
-// ---------- Actions ----------
+/* =========================
+   Actions
+   ========================= */
 async function handleAutoFillState() {
   try {
     $("status").textContent = "Looking up state/province…";
     const postalCode = $("postal").value.trim();
-    const countryCode = $("country").value;
+    const countryCode = getCountryCode();
     const { stateCode } = await apiPost('/state', { postalCode, countryCode });
     $("state").value = stateCode || '';
     $("status").textContent = stateCode ? "State filled." : "No match found for state.";
@@ -424,7 +442,7 @@ function validateInputs() {
     product: $("product").value,
     qty: parseInt($("qty").value, 10),
     postal: $("postal").value.trim(),
-    country: $("country").value,
+    country: getCountryCode(),
     state: $("state").value.trim(),
     length: parseFloat($("length").value),
     width:  parseFloat($("width").value),
@@ -459,7 +477,7 @@ async function handleSubmit(e) {
       productKey: mainKey,
       quantity: parseInt($("qty").value, 10) || 1,
       postalCode: $("postal").value.trim(),
-      country: $("country").value,
+      country: getCountryCode(),
       stateCode: $("state").value.trim(),
       length: parseFloat($("length").value),
       width:  parseFloat($("width").value),
@@ -471,6 +489,7 @@ async function handleSubmit(e) {
     };
 
     const { rate, currency, meta } = await apiPost('/rate', payload);
+
     const addonKey = $("addonProduct").value;
     const addonQty = parseInt($("addonQty").value, 10) || 0;
     const addonAdj = computeAddonSurcharge(mainKey, payload.quantity, addonKey, addonQty);
@@ -488,9 +507,10 @@ async function handleSubmit(e) {
   }
 }
 
-// ---------- Wire up ----------
+/* =========================
+   Wire up
+   ========================= */
 document.addEventListener("DOMContentLoaded", async () => {
-  // Close button for the wake banner
   $("wakeClose")?.addEventListener("click", () => hideWakeBanner());
 
   try {
@@ -522,5 +542,5 @@ document.addEventListener("DOMContentLoaded", async () => {
   $("openRefLink")?.addEventListener("click", openReferenceModal);
 });
 
-// Expose for inline handler
+// Expose for the inline handler
 window.openReferenceModal = openReferenceModal;
